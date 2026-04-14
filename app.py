@@ -18,7 +18,7 @@ st.markdown("""Интерактивное приложение для класт
 
 @st.cache_data
 def load_data():
-    df = pd.read_csv(r"C:\Users\user\Desktop\Home work 8\Mall_Customers.csv")
+    df = pd.read_csv("Mall_Customers.csv")
 
     df = df.dropna()
 
