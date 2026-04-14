@@ -1,40 +1,41 @@
-import streamlit as st
+import streamlit as st 
 import pandas as pd
 import numpy as np
 
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
+from sklearn.metrics import silhouette_score
 
 import plotly.express as px
-
 import umap
 
 
 st.set_page_config(page_title="Mall Clustering App", layout="wide")
 
 st.title("🛍️ Mall Customers Clustering App")
-st.markdown("""Интерактивное приложение для кластеризации клиентов с использованием **K-Means**  и снижения размерности (**PCA / UMAP**). """)
+st.markdown("Интерактивное приложение для кластеризации клиентов")
 
 @st.cache_data
 def load_data():
     df = pd.read_csv("Mall_Customers.csv")
-
     df = df.dropna()
-
     df["Gender"] = df["Gender"].map({"Male": 0, "Female": 1})
+    return df
 
-    features = ["Age", "Annual Income (k$)", "Spending Score (1-100)", "Gender"]
-    X = df[features]
+df = load_data()
 
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-
-    return df, X_scaled, features
-
-
-df, X_scaled, features = load_data()
 st.sidebar.header("⚙️ Настройки")
+
+features_all = ["Age", "Annual Income (k$)", "Spending Score (1-100)", "Gender"]
+
+selected_features = st.sidebar.multiselect(
+    "Выбери признаки",
+    features_all,
+    default=features_all
+)
+
+auto_k = st.sidebar.checkbox("🔍 Авто-выбор лучшего K")
 
 k = st.sidebar.slider("Количество кластеров (K-Means)", 2, 10, 4)
 
@@ -43,32 +44,101 @@ method = st.sidebar.radio(
     ["PCA", "UMAP"]
 )
 
+X = df[selected_features]
+
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+if auto_k:
+    best_k = 2
+    best_score = -1
+
+    for i in range(2, 11):
+        km = KMeans(n_clusters=i, random_state=42, n_init="auto")
+        labels = km.fit_predict(X_scaled)
+        score = silhouette_score(X_scaled, labels)
+
+        if score > best_score:
+            best_score = score
+            best_k = i
+
+    k = best_k
+    st.sidebar.success(f"Лучший K найден: {k}")
+
 kmeans = KMeans(n_clusters=k, random_state=42, n_init="auto")
 clusters = kmeans.fit_predict(X_scaled)
 
 df["Cluster"] = clusters
 
+sil_score = silhouette_score(X_scaled, clusters)
+
+st.sidebar.metric("Silhouette Score", f"{sil_score:.3f}")
+
 if method == "PCA":
     reducer = PCA(n_components=2)
-    X_2d = reducer.fit_transform(X_scaled)
 else:
     reducer = umap.UMAP(n_components=2, random_state=42)
-    X_2d = reducer.fit_transform(X_scaled)
+
+X_2d = reducer.fit_transform(X_scaled)
 
 df["Dim1"] = X_2d[:, 0]
 df["Dim2"] = X_2d[:, 1]
+
 
 fig = px.scatter(
     df,
     x="Dim1",
     y="Dim2",
     color=df["Cluster"].astype(str),
-    title=f"K-Means Clusters + {method}",
-    hover_data=["Age", "Annual Income (k$)", "Spending Score (1-100)"]
+    title=f"K-Means + {method}",
+    hover_data=selected_features
 )
 
 st.plotly_chart(fig, use_container_width=True)
 
+if len(selected_features) >= 3:
+    st.subheader("🌐 3D визуализация")
 
-st.subheader("📊 Данные")
-st.dataframe(df.head())
+    fig3d = px.scatter_3d(
+        df,
+        x=selected_features[0],
+        y=selected_features[1],
+        z=selected_features[2],
+        color=df["Cluster"].astype(str),
+        title="3D Clusters"
+    )
+
+    st.plotly_chart(fig3d, use_container_width=True)
+else:
+    st.warning("⚠️ Для 3D нужно минимум 3 признака")
+
+with st.expander("📊 Показать данные"):
+    st.dataframe(df)
+
+with st.expander("📈 Silhouette Score vs K"):
+    scores = []
+    k_range = range(2, 11)
+
+    for i in k_range:
+        km = KMeans(n_clusters=i, random_state=42, n_init="auto")
+        labels = km.fit_predict(X_scaled)
+        score = silhouette_score(X_scaled, labels)
+        scores.append(score)
+
+    fig2 = px.line(
+        x=list(k_range),
+        y=scores,
+        markers=True,
+        title="Silhouette Score vs K"
+    )
+
+    st.plotly_chart(fig2)
+
+csv = df.to_csv(index=False).encode('utf-8')
+
+st.download_button(
+    label="📥 Скачать результат",
+    data=csv,
+    file_name="clustered_data.csv",
+    mime="text/csv"
+)
