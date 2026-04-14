@@ -93,8 +93,7 @@ fig = px.scatter(
 st.plotly_chart(fig, use_container_width=True)
 
 if len(selected_features) >= 3:
-    st.subheader("🌐 PRO 3D Cluster Visualization")
-
+    st.subheader("🌐 3D визуализация")
     pca_3d = PCA(n_components=3)
     X_3d = pca_3d.fit_transform(X_scaled)
 
@@ -102,39 +101,19 @@ if len(selected_features) >= 3:
     df["PC2"] = X_3d[:, 1]
     df["PC3"] = X_3d[:, 2]
 
-    centers = pca_3d.transform(kmeans.cluster_centers_)
-
     fig3d = px.scatter_3d(
         df,
         x="PC1",
         y="PC2",
         z="PC3",
         color=df["Cluster"].astype(str),
-        opacity=0.75,
+        opacity=0.8,
         size=df["Spending Score (1-100)"],
         hover_data=selected_features,
-        title="💎 3D Clustering (PCA + KMeans)"
-    )
-
-    fig3d.add_scatter3d(
-        x=centers[:, 0],
-        y=centers[:, 1],
-        z=centers[:, 2],
-        mode="markers",
-        marker=dict(
-            size=10,
-            color="black",
-            symbol="x"
-        ),
-        name="Centroids"
+        title="3D Clusters"
     )
 
     fig3d.update_layout(
-        scene=dict(
-            xaxis_title="PC1",
-            yaxis_title="PC2",
-            zaxis_title="PC3"
-        ),
         margin=dict(l=0, r=0, b=0, t=40)
     )
 
