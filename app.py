@@ -9,6 +9,8 @@ from sklearn.metrics import silhouette_score
 
 import plotly.express as px
 import umap
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="Mall Clustering App", layout="wide")
 
@@ -92,6 +94,23 @@ fig = px.scatter(
 
 st.plotly_chart(fig, use_container_width=True)
 
+# 🔥 ВОТ ТВОЯ ТЕПЛОВАЯ КАРТА (уже встроена)
+with st.expander("📊 Корреляция признаков"):
+    corr = df[selected_features].corr()
+
+    fig_corr, ax = plt.subplots()
+    sns.heatmap(
+        corr,
+        annot=True,
+        fmt=".2f",
+        cmap="coolwarm",
+        linewidths=0.5,
+        ax=ax
+    )
+
+    st.pyplot(fig_corr)
+
+# 3D визуализация
 if len(selected_features) >= 3:
     st.subheader("🌐 3D визуализация")
     pca_3d = PCA(n_components=3)
