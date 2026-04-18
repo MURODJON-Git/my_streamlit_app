@@ -94,7 +94,6 @@ fig = px.scatter(
 
 st.plotly_chart(fig, use_container_width=True)
 
-# 🔥 ВОТ ТВОЯ ТЕПЛОВАЯ КАРТА (уже встроена)
 with st.expander("📊 Корреляция признаков"):
     corr = df[selected_features].corr()
 
@@ -110,7 +109,6 @@ with st.expander("📊 Корреляция признаков"):
 
     st.pyplot(fig_corr)
 
-# 3D визуализация
 if len(selected_features) >= 3:
     st.subheader("🌐 3D визуализация")
     pca_3d = PCA(n_components=3)
